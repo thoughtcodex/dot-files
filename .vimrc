@@ -79,7 +79,7 @@ let g:ale_typescript_prettier_use_local_config = 1
 let g:ale_typescript_eslint_use_global = 0
 
 " Recursive Grep
-set grepprg=ag\ --numbers\ --nogroup
+set grepprg=rg\ --line-number
 
 " \cp to Clipboard Copy the Current File Path
 nnoremap <leader>cp :let @+ = expand('%')<CR>
