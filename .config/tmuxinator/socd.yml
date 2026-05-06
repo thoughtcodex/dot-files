@@ -1,10 +1,12 @@
-# /Users/liam/.config/tmuxinator/out.yml
+# /Users/liam/.config/tmuxinator/outd.yml
+# Usage:
+#   mux socd branch-or-linear-id prompt [model]
 
-name: out
-root: ~/Developer/outrank-ink/master
+name: outd
+root: ~/Developer/outrank-inc/
 
 # Optional tmux socket
-# socket_name: foo
+socket_name: outd-<%= args[0] %>
 
 # Note that the pre and post options have been deprecated and will be replaced by
 # project hooks.
@@ -15,19 +17,32 @@ root: ~/Developer/outrank-ink/master
 # on_project_start: command
 
 # Run on project start, the first time
-# on_project_first_start: command
+on_project_start:
+  - brew upgrade claude-code
+  - cd master
+  - git worktree add -b '<%= args[0] %>' '../<%= args[0] %>' master
+  - cd '../<%= args[0] %>'
+  - npm ci
+  - cp ../master/.env.dev .
+  - sed -i 's/outrank-inc-test/outrank-inc-test-<%= args[0] %>' .env.test
+  - npm run env-test -- npm run migrate
+  - npm run env-test -- npm run generate
 
 # Run on project start, after the first time
 # on_project_restart: command
 
 # Run on project exit ( detaching from tmux session )
-# on_project_exit: command
+on_project_exit:
+  - cd ~/Developer/outrank-inc/master
+  - git worktree remove -f '<%= args[0] %>'
+  - git merge '<%= args[0] %>'
+  - git branch -d '<%= args[0] %>'
 
 # Run on project stop
 # on_project_stop: command
 
 # Runs in each window and pane before window/pane specific commands. Useful for setting up interpreter versions.
-# pre_window: export DATABASE_URL=postgres://$USER@localhost:5432/socratic-garden-local
+pre_window: cd '<%= args[0] %>'
 
 # Pass command line options to tmux. Useful for specifying a different tmux.conf.
 # tmux_options: -f ~/.tmux.mac.conf
@@ -45,12 +60,9 @@ root: ~/Developer/outrank-ink/master
 # attach: false
 
 windows:
-  - engage: git status
+  - claude:
+    - <% if @args[1] %>echo '<%= @args[1] %>'<% else %>linear issue view '<%= @args[0] %>'<% end %> > prompt.txt
+    - claude --model '<%= @args[2] || 'sonnet' %>' 'Please follow the instructions in ./prompt.txt.  Make sure that `npm run test` and `npm run lint` passes after completion.'
+  - engage: watch git status
   - editor: vim .
-  - compute:
-    - npm run dev
-    - watch npx workflow inspect runs -i
-  - inspect:
-    - npm run prisma-dev -- studio --browser none
-    - npx workflow web --noBrowser
-  - metabase: cd ~/Developer/metabase && MB_JETTY_PORT=3001 java -jar metabase.jar
+  - server: npm run dev
